@@ -178,10 +178,11 @@ export class ChartEngine extends Emitter{
     return{start,end,from:clamp(Math.floor(start),0,Math.max(0,this.displayLength-1)),to:clamp(Math.ceil(end),0,Math.max(0,this.displayLength-1))};
   }
   _layout(){
-    const oscillators=this.computed.filter(x=>!x.overlay&&!x.hidden).slice(0,2),timeAxis=22,minMain=Math.max(120,this.height*.45);
-    let oscH=oscillators.length?clamp((this.height-timeAxis)*.20,80,150):0;if(oscillators.length===2&&this.height<440)oscH=70;
+    const mobile=this.width<=520,timeAxis=mobile?24:22,priceAxis=mobile?60:68;
+    const oscillators=this.computed.filter(x=>!x.overlay&&!x.hidden).slice(0,2),minMain=Math.max(mobile?105:120,this.height*.45);
+    let oscH=oscillators.length?clamp((this.height-timeAxis)*.20,mobile?68:80,mobile?120:150):0;if(oscillators.length===2&&this.height<440)oscH=62;
     const mainBottom=Math.max(minMain,this.height-timeAxis-oscH*oscillators.length);this.timeAxisY=this.height-timeAxis;this.mainBottom=Math.min(mainBottom,this.timeAxisY);
-    this.plotRight=Math.max(80,this.width-68);this.oscillators=oscillators;this.oscPanes=oscillators.map((x,i)=>({item:x,top:this.mainBottom+i*oscH,bottom:this.mainBottom+(i+1)*oscH}));
+    this.plotRight=Math.max(80,this.width-priceAxis);this.oscillators=oscillators;this.oscPanes=oscillators.map((x,i)=>({item:x,top:this.mainBottom+i*oscH,bottom:this.mainBottom+(i+1)*oscH}));
   }
 
   _percentReference(){
@@ -240,8 +241,15 @@ export class ChartEngine extends Emitter{
   _drawVolume(ctx){
     if(!this.volume)return;const{from,to}=this.visibleRange,display=this._priceBars();let max=0;
     for(let i=from;i<=to&&i<this.displayLength;i++)max=Math.max(max,this.bars[i]?.volume||0);if(!max)return;
-    const area=this.mainBottom*.18,base=this.mainBottom;
-    for(let i=from;i<=to&&i<this.displayLength;i++){const raw=this.bars[i],b=display[i]||raw,x=this.indexToX(i),vh=(raw?.volume||0)/max*area;ctx.fillStyle=b.close>=b.open?'rgba(24,185,130,.28)':'rgba(240,82,82,.28)';ctx.fillRect(x-Math.max(1,this.barSpacing*.32),base-vh,Math.max(1,this.barSpacing*.64),vh)}
+    const mobile=this.width<=520,area=clamp(this.mainBottom*(mobile?.145:.18),mobile?54:46,mobile?118:150),base=this.mainBottom;
+    ctx.save();
+    for(let i=from;i<=to&&i<this.displayLength;i++){
+      const raw=this.bars[i],b=display[i]||raw,x=this.indexToX(i),vh=(raw?.volume||0)/max*area;
+      ctx.fillStyle=b.close>=b.open?(mobile?'rgba(24,185,130,.46)':'rgba(24,185,130,.28)'):(mobile?'rgba(240,82,82,.46)':'rgba(240,82,82,.28)');
+      ctx.fillRect(x-Math.max(1,this.barSpacing*.32),base-vh,Math.max(1,this.barSpacing*.64),Math.max(1,vh));
+    }
+    if(mobile){ctx.fillStyle='rgba(145,158,171,.72)';ctx.font='9px system-ui';ctx.textAlign='left';ctx.fillText('Vol',5,Math.max(11,base-area+11))}
+    ctx.restore();
   }
   _drawPriceSeries(ctx){if(this.chartType==='line'||this.chartType==='area')return this._drawLineArea(ctx,this.chartType==='area');if(this.chartType==='bars')return this._drawBars(ctx);if(this.chartType==='heikin')return this._drawCandles(ctx,this._heikinBars());return this._drawCandles(ctx,this.bars)}
   _drawLineArea(ctx,area=false){
@@ -293,7 +301,8 @@ export class ChartEngine extends Emitter{
     }
   }
   _drawAxes(ctx,border,muted){
-    ctx.save();ctx.fillStyle=getComputedStyle(document.body).getPropertyValue('--panel').trim()||'#10161d';ctx.fillRect(this.plotRight,0,this.width-this.plotRight,this.height);ctx.fillRect(0,this.timeAxisY,this.plotRight,this.height-this.timeAxisY);ctx.strokeStyle=border;line(ctx,this.plotRight,0,this.plotRight,this.height);line(ctx,0,this.timeAxisY,this.width,this.timeAxisY);ctx.fillStyle=muted;ctx.font='10px system-ui';ctx.textAlign='left';
+    const mobile=this.width<=520;
+    ctx.save();ctx.fillStyle=getComputedStyle(document.body).getPropertyValue('--panel').trim()||'#10161d';ctx.fillRect(this.plotRight,0,this.width-this.plotRight,this.height);ctx.fillRect(0,this.timeAxisY,this.plotRight,this.height-this.timeAxisY);ctx.strokeStyle=border;line(ctx,this.plotRight,0,this.plotRight,this.height);line(ctx,0,this.timeAxisY,this.width,this.timeAxisY);ctx.fillStyle=mobile?'#9aa5b3':muted;ctx.font=mobile?'11px system-ui':'10px system-ui';ctx.textAlign='left';
     for(let i=0;i<=6;i++){const y=this.mainBottom*i/6,v=this.priceMax-i/6*(this.priceMax-this.priceMin);ctx.fillText(this._formatScale(v),this.plotRight+5,y+3)}
     const{from,to}=this.visibleRange,step=Math.max(5,Math.round(90/this.barSpacing));ctx.textAlign='center';let prevDay=null;const intraday=!/[dwM]$/.test(this.timeframe);
     for(let i=Math.ceil(from/step)*step;i<=to;i+=step){const b=this.bars[i];if(!b)continue;const x=this.indexToX(i);if(x<28||x>this.plotRight-28)continue;const d=new Date(b.time),day=d.toDateString();ctx.fillText(intraday&&prevDay&&day!==prevDay?d.toLocaleDateString(undefined,{month:'short',day:'numeric'}):formatTimeAxis(b.time,this.timeframe),x,this.timeAxisY+14);prevDay=day}ctx.restore();

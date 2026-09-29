@@ -97,7 +97,7 @@ async function createChart(config,index){
   chart.on('indicators',()=>{renderChartIndicatorLegend(chart);if(chart===app.activeChart){renderActiveIndicators();renderObjectTree()}});
   chart.on('error',logError);chart.on('needHistory',()=>loadOlder(chart));
   chart.drawings.onToolDone=()=>$$('#toolRail [data-tool]').forEach(x=>x.classList.toggle('active',x.dataset.tool==='cursor'));
-  chart.on('bar',bar=>{app.prices[chart.symbol]=bar.close;if(chart===app.activeChart){$('#priceStatus').textContent=formatPrice(bar.close);$('#detailPrice').textContent=formatPrice(bar.close)}checkAlerts(chart.symbol,bar.close);app.paper.mark(chart.symbol,bar.close).then(ch=>{if(ch)renderPaper()});rerunScriptsDebounced(chart)});
+  chart.on('bar',bar=>{app.prices[chart.symbol]=bar.close;if(chart===app.activeChart){const ps=$('#priceStatus');ps.textContent=formatPrice(bar.close);ps.classList.toggle('price-up',bar.close>=bar.open);ps.classList.toggle('price-down',bar.close<bar.open);$('#detailPrice').textContent=formatPrice(bar.close)}checkAlerts(chart.symbol,bar.close);app.paper.mark(chart.symbol,bar.close).then(ch=>{if(ch)renderPaper()});rerunScriptsDebounced(chart)});
   if(!app.activeChart)setActiveChart(chart);await loadChart(chart,true);return chart;
 }
 async function loadChart(chart,fit=true){
@@ -165,7 +165,7 @@ function openMobileSurface(kind,tab){
   if(kind==='right'){mobileTab('right',tab||'details');$('#rightPanel')?.classList.add('mobile-sheet-open')}
   if(kind==='bottom'){mobileTab('bottom',tab||'scripts');$('#bottomPanel')?.classList.add('mobile-sheet-open');setMobileNavActive(tab==='backtest'?'backtest':'scripts')}
   if(kind==='tools'){$('#toolRail')?.classList.add('mobile-sheet-open')}
-  if(kind==='more'){$('#mobileMoreSheet')?.classList.add('open')}
+  if(kind==='more'){$('#mobileMoreSheet')?.classList.add('open');setMobileNavActive('more')}
 }
 function runMobileAction(action){
   closeMobileSurfaces();
@@ -181,6 +181,8 @@ function runMobileAction(action){
   if(action==='replay')return toggleReplay();
   if(action==='save')return saveWorkspace(true);
   if(action==='open')return $('#importFile')?.click();
+  if(action==='fit'){app.activeChart?.fitContent();app.activeChart?.resetPriceScale();return}
+  if(action==='share')return app.activeChart?.exportImage();
   if(action==='settings')return openModal('settingsDialog');
 }
 function bindSheetDrag(handle,onClose){
@@ -200,7 +202,7 @@ function wireMobileUI(){
   $('#mobileUndoButton')?.addEventListener('click',()=>app.activeChart?.drawings.undo());$('#mobileRedoButton')?.addEventListener('click',()=>app.activeChart?.drawings.redo());
   $('#mobileFitButton')?.addEventListener('click',()=>{app.activeChart?.fitContent();app.activeChart?.resetPriceScale()});
   $('#mobileShareButton')?.addEventListener('click',()=>app.activeChart?.exportImage());
-  $$('#mobileBottomNav [data-mobile-nav]').forEach(b=>b.addEventListener('click',()=>{const n=b.dataset.mobileNav;if(n==='chart')return closeMobileSurfaces();if(n==='watchlist')return openMobileSurface('left','watchlist');if(n==='scanner')return openMobileSurface('left','scanner');if(n==='scripts')return openMobileSurface('bottom','scripts');if(n==='backtest')return openMobileSurface('bottom','backtest')}));
+  $$('#mobileBottomNav [data-mobile-nav]').forEach(b=>b.addEventListener('click',()=>{const n=b.dataset.mobileNav;if(n==='chart')return closeMobileSurfaces();if(n==='watchlist')return openMobileSurface('left','watchlist');if(n==='scanner')return openMobileSurface('left','scanner');if(n==='scripts')return openMobileSurface('bottom','scripts');if(n==='more')return openMobileSurface('more')}));
   $$('#mobileMoreSheet [data-mobile-action]').forEach(b=>b.addEventListener('click',()=>runMobileAction(b.dataset.mobileAction)));
   bindSheetDrag($('#mobileMoreSheet .mobile-sheet-handle'),()=>closeMobileSurfaces());bindSheetDrag($('#toolRail .mobile-sheet-handle'),()=>closeMobileSurfaces());$$('.mobile-panel-handle').forEach(h=>bindSheetDrag(h,()=>closeMobileSurfaces()));
   window.addEventListener('resize',()=>{if(!isMobileUI())closeMobileSurfaces()});
@@ -212,7 +214,7 @@ function toggleWatchlist(symbol){const i=app.watchlist.indexOf(symbol);if(i>=0)a
 async function refreshScanner(){if(!app.scanner)return;try{app.scannerRows=await app.scanner.refresh('USDT');app.tickerMap=new Map(app.scannerRows.map(x=>[x.symbol,x]));renderScanner();renderWatchlist();await refreshActiveTicker();return app.scannerRows}catch(e){logError(e);throw e}}
 function renderScanner(){const el=$('#scannerList');if(!el||!app.scanner)return;const sort=$('#scannerSort').value,rows=app.scanner.sorted(sort,true).slice(0,150);el.innerHTML=rows.map(r=>`<div class="scanner-row" data-symbol="${r.symbol}"><div><strong>${r.symbol.replace('USDT','')}</strong><small class="muted">${formatNumber(r.volume)} USDT</small></div><div class="scanner-values"><span>${formatPrice(r.price)}</span><small class="${r.change>=0?'price-up':'price-down'}">${formatPct(r.change)}</small></div></div>`).join('');el.querySelectorAll('[data-symbol]').forEach(x=>x.addEventListener('click',()=>changeSymbol(x.dataset.symbol)))}
 async function refreshActiveTicker(){const s=app.activeChart?.symbol||app.symbol;let t=app.tickerMap.get(s);if(!t){try{const r=await app.client.ticker24h(s);t={symbol:s,price:+r.lastPrice,change:+r.priceChangePercent,volume:+r.quoteVolume,high:+r.highPrice,low:+r.lowPrice};app.tickerMap.set(s,t)}catch{return}}$('#detailSymbol').textContent=s;$('#detailPrice').textContent=formatPrice(t.price);$('#detailChange').textContent=formatPct(t.change);$('#detailChange').className=t.change>=0?'price-up':'price-down';$('#detailHigh').textContent=formatPrice(t.high);$('#detailLow').textContent=formatPrice(t.low);$('#detailVolume').textContent=formatNumber(t.volume);$('#detailMarket').textContent=app.market==='spot'?'Spot':'Futures'}
-function updateOHLC(b){if(!b)return;$('#ohlcStatus').textContent=`O ${formatPrice(b.open)}  H ${formatPrice(b.high)}  L ${formatPrice(b.low)}  C ${formatPrice(b.close)}  V ${formatNumber(b.volume)}`;$('#priceStatus').textContent=formatPrice(b.close)}
+function updateOHLC(b){if(!b)return;$('#ohlcStatus').textContent=`O ${formatPrice(b.open)}  H ${formatPrice(b.high)}  L ${formatPrice(b.low)}  C ${formatPrice(b.close)}  V ${formatNumber(b.volume)}`;const ps=$('#priceStatus');ps.textContent=formatPrice(b.close);ps.classList.toggle('price-up',b.close>=b.open);ps.classList.toggle('price-down',b.close<b.open)}
 
 function renderIndicatorCatalog(){const el=$('#indicatorCatalog'),q=($('#indicatorSearch')?.value||'').toLowerCase();const built=Object.values(BUILT_INS).filter(x=>x.name.toLowerCase().includes(q)||x.id.includes(q)||(x.category||'').toLowerCase().includes(q)).sort((a,b)=>(b.category==='BCS Pro Suite')-(a.category==='BCS Pro Suite'));const custom=app.scriptList.filter(s=>s.type==='indicator'&&(!q||s.name.toLowerCase().includes(q)));el.innerHTML=`${built.map(x=>`<div class="indicator-item" data-built="${x.id}"><div><strong>${x.category==='BCS Pro Suite'?'<span class="pro-badge">BCS PRO</span> ':''}${x.name}</strong><p>${x.category?`${x.category} • `:''}${x.overlay?'Overlay on price':'Separate pane'}</p></div><span class="push">＋</span></div>`).join('')}${custom.map(s=>`<div class="indicator-item" data-script="${s.id}"><div><strong>${s.favorite?'★ ':''}${escapeHtml(s.name)}</strong><p>My JavaScript Script</p></div><span class="push">＋</span></div>`).join('')}`;el.querySelectorAll('[data-built]').forEach(x=>x.addEventListener('click',()=>{app.activeChart?.addIndicator(x.dataset.built);renderActiveIndicators();closeModal('indicatorDialog')}));el.querySelectorAll('[data-script]').forEach(x=>x.addEventListener('click',async()=>{await applyScriptToChart(x.dataset.script,app.activeChart,true);closeModal('indicatorDialog')}))}
 $('#indicatorSearch')?.addEventListener('input',renderIndicatorCatalog);

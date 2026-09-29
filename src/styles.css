@@ -247,3 +247,118 @@ body.resizing-panels{cursor:col-resize!important;user-select:none!important}body
   .mobile-more-controls label{display:flex;flex-direction:column;gap:6px;text-align:right;color:#9ca3ae;font-size:11px}
   .mobile-more-controls select{width:100%;height:42px;min-height:42px;border-radius:12px;background:#23262b;border:1px solid rgba(255,255,255,.08);padding:0 10px;color:#edf1f5}
 }
+
+/* v1.5.4 — compact iPhone trading layout.
+   The chart owns a real viewport above the controls; controls never cover candles/volume. */
+@media(max-width:900px){
+  :root{
+    --mobile-nav-h:54px;
+    --mobile-action-h:44px;
+    --mobile-top-h:70px;
+    --mobile-bottom-stack:calc(var(--mobile-nav-h) + var(--mobile-action-h) + var(--safe-bottom));
+  }
+
+  /* Reserve space for the two fixed bars.  This is the key difference from 1.5.3:
+     the canvas no longer continues underneath the bars, so volume/time labels remain visible. */
+  .workspace-shell{
+    inset:0 0 var(--mobile-bottom-stack) 0!important;
+    width:100%!important;
+    height:auto!important;
+  }
+  .workspace{inset:0!important;height:100%!important}
+  .chart-cell{height:100%!important}
+
+  /* Smaller chart header, closer to TradingView mobile proportions. */
+  .topbar{
+    height:calc(var(--mobile-top-h) + var(--safe-top));
+    padding:calc(var(--safe-top) + 7px) max(11px,var(--safe-right)) 8px max(11px,var(--safe-left));
+    background:linear-gradient(180deg,rgba(5,8,12,.94) 0%,rgba(5,8,12,.58) 68%,rgba(5,8,12,0) 100%);
+  }
+  .topbar .symbol-button{height:32px;font-size:18px;font-weight:620;gap:7px;padding-inline:2px}
+  .topbar .symbol-button .muted{font-size:11px}
+  .status-strip{
+    top:calc(var(--safe-top) + 39px);
+    left:max(12px,var(--safe-left));right:max(66px,var(--safe-right));
+    height:23px;gap:8px;font-size:11px;
+  }
+  .status-strip #priceStatus{font-size:14px;font-weight:520}
+  .status-strip #connectionStatus i{width:10px;height:10px}
+  .chart-indicator-legend{top:calc(var(--safe-top) + 66px)!important;left:9px;right:66px}
+  .chart-indicator-legend-toggle{height:20px;padding:0 6px}
+  .chart-indicator-row{min-height:20px;font-size:9px;padding-block:1px}
+
+  /* Compact action strip.  Share/Fit live in the More sheet; keep only high-frequency actions. */
+  .mobile-chart-bar{
+    bottom:calc(var(--mobile-nav-h) + var(--safe-bottom));
+    height:var(--mobile-action-h);
+    padding:0 max(5px,var(--safe-right)) 0 max(5px,var(--safe-left));
+    gap:0;
+    background:#070a0e;
+    border-color:rgba(129,144,163,.16);
+    overflow:hidden;
+  }
+  #mobileShareButton,#mobileFitButton{display:none!important}
+  .mobile-chart-bar>button,.mobile-chart-bar .mobile-tf-wrap{
+    flex:0 0 34px;height:40px;border-radius:7px;font-size:18px;
+  }
+  #mobileUndoButton,#mobileRedoButton,#mobileMoreQuick{flex-basis:34px}
+  .mobile-chart-bar .mobile-draw-main{flex-basis:38px;font-size:23px}
+  .mobile-tf-wrap{flex-basis:52px!important}
+  .mobile-tf-wrap select{font-size:16px;font-weight:650;padding:0}
+  .mobile-symbol-quick{
+    flex:1 1 0!important;min-width:0!important;max-width:none!important;
+    height:40px!important;justify-content:flex-end!important;padding:0 4px!important;
+    font-size:15px!important;font-weight:650;text-align:right!important;
+  }
+
+  /* Compact global navigation. */
+  .mobile-bottom-nav{
+    height:calc(var(--mobile-nav-h) + var(--safe-bottom));
+    padding:0 max(4px,var(--safe-right)) var(--safe-bottom) max(4px,var(--safe-left));
+    background:#05080c;
+  }
+  .mobile-bottom-nav button{gap:2px;padding:2px 1px;border-radius:7px}
+  .mobile-bottom-nav button b{font-size:19px;line-height:1}
+  .mobile-bottom-nav button span{font-size:9px;line-height:1.05}
+
+  /* The replay controller is also above, never on top of, the action strip. */
+  .replay-bar{
+    bottom:calc(var(--mobile-bottom-stack) + 7px)!important;
+    min-height:38px;
+  }
+
+  /* Sheets are the only vertically scrollable surfaces. */
+  .mobile-more-sheet{max-height:78dvh;min-height:42dvh;border-radius:20px 20px 0 0;padding-inline:max(13px,var(--safe-right)) max(13px,var(--safe-left))}
+  .mobile-sheet-head strong,.mobile-panel-head strong{font-size:20px}
+  .mobile-sheet-head button,.mobile-panel-head button{width:36px;height:36px;flex-basis:36px;font-size:21px}
+  .mobile-more-primary,.mobile-more-grid{gap:8px}
+  .mobile-more-primary button,.mobile-more-grid button{min-height:66px;border-radius:13px;padding:8px;gap:6px}
+  .mobile-more-primary button b,.mobile-more-grid button b{font-size:21px}
+  .mobile-more-primary button span,.mobile-more-grid button span{font-size:11px}
+  .mobile-sheet-section-title{font-size:14px;padding-top:14px}
+
+  /* Drawing picker: three columns gives every tool a usable tap target and readable label. */
+  .tool-rail.mobile-sheet-open{grid-template-columns:repeat(3,minmax(0,1fr));height:min(74dvh,680px)!important;gap:7px}
+  .tool-rail.mobile-sheet-open>button{height:64px!important;font-size:19px!important;border-radius:12px!important}
+  .tool-rail.mobile-sheet-open>button::after{font-size:8.5px}
+
+  /* Keep the time/price canvas readable right to the edge. */
+  .chart-canvas{display:block;width:100%!important;height:100%!important}
+}
+
+@media(max-width:380px){
+  .mobile-chart-bar>button{flex-basis:31px}
+  #mobileUndoButton,#mobileRedoButton,#mobileMoreQuick{flex-basis:31px}
+  .mobile-chart-bar .mobile-draw-main{flex-basis:35px}
+  .mobile-tf-wrap{flex-basis:47px!important}
+  .mobile-tf-wrap select{font-size:15px}
+  .mobile-symbol-quick{font-size:14px!important}
+}
+
+@media(max-width:900px) and (orientation:landscape){
+  :root{--mobile-nav-h:43px;--mobile-action-h:39px;--mobile-top-h:54px}
+  .topbar .symbol-button{font-size:16px;height:27px}
+  .status-strip{top:calc(var(--safe-top) + 29px)}
+  .chart-indicator-legend{top:calc(var(--safe-top) + 51px)!important}
+  .mobile-bottom-nav button b{font-size:17px}.mobile-bottom-nav button span{font-size:8px}
+}
