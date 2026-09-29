@@ -1,4 +1,4 @@
-const CACHE = 'binance-chart-studio-v153-mobile-shell';
+const CACHE = 'binance-chart-studio-v154-iphone-layout';
 const SHELL = [
   './','./index.html','./manifest.webmanifest','./src/styles.css','./src/app.js',
   './src/utils.js','./src/storage.js','./src/binance.js','./src/ta.js','./src/chart.js',

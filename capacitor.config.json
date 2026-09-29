@@ -3,7 +3,7 @@
   "appName": "BCS Chart Studio",
   "webDir": "www",
   "ios": {
-    "contentInset": "automatic",
+    "contentInset": "never",
     "backgroundColor": "#0b0f14",
     "allowsLinkPreview": false,
     "preferredContentMode": "mobile"
