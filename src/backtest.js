@@ -1,0 +1,17 @@
+import {clamp} from './utils.js';
+export function runBacktest(bars,orders,{capital=10000,feePct=.1,slippagePct=.02,positionPct=100}={}){
+  capital=+capital||10000;feePct=(+feePct||0)/100;slippagePct=(+slippagePct||0)/100;positionPct=clamp(+positionPct||100,1,100)/100;
+  let cash=capital,equity=capital,position=null,oi=0;const trades=[],curve=[];const sorted=[...(orders||[])].filter(o=>Number.isFinite(o.index)).sort((a,b)=>a.index-b.index);
+  const closePosition=(i,rawPrice,reason='signal')=>{if(!position)return;const exitPrice=applySlip(rawPrice,position.side==='long'?'sell':'buy',slippagePct),dir=position.side==='long'?1:-1,gross=(exitPrice-position.entryPrice)*position.qty*dir,exitFee=Math.abs(exitPrice*position.qty)*feePct,pnl=gross-position.entryFee-exitFee;cash+=position.margin+pnl;equity=cash;trades.push({...position,exitIndex:i,exitTime:bars[i]?.time,exitPrice,pnl,returnPct:pnl/position.margin*100,reason});position=null};
+  const openPosition=(o,i)=>{if(position)closePosition(i,bars[i].open,'reverse');const side=o.side==='short'?'short':'long',entryPrice=applySlip(bars[i].open,side==='long'?'buy':'sell',slippagePct),margin=cash*positionPct,qty=margin/entryPrice,entryFee=Math.abs(entryPrice*qty)*feePct;cash-=margin;const sp=+o.opts?.stopPct||0,tp=+o.opts?.takePct||0;position={side,entryIndex:i,entryTime:bars[i].time,entryPrice,qty,margin,entryFee,stop:o.opts?.stop??(sp?(side==='long'?entryPrice*(1-sp/100):entryPrice*(1+sp/100)):null),take:o.opts?.take??(tp?(side==='long'?entryPrice*(1+tp/100):entryPrice*(1-tp/100)):null)}};
+  for(let i=0;i<bars.length;i++){
+    while(oi<sorted.length&&sorted[oi].index+1<i)oi++;
+    while(oi<sorted.length&&sorted[oi].index+1===i){const o=sorted[oi++];if(o.type==='entry')openPosition(o,i);else if(o.type==='close'&&position)closePosition(i,bars[i].open,'signal')}
+    if(position){const b=bars[i];let stopHit=false,takeHit=false;if(position.side==='long'){stopHit=position.stop!=null&&b.low<=position.stop;takeHit=position.take!=null&&b.high>=position.take}else{stopHit=position.stop!=null&&b.high>=position.stop;takeHit=position.take!=null&&b.low<=position.take}if(stopHit)closePosition(i,position.stop,'stop');else if(takeHit)closePosition(i,position.take,'take')}
+    if(position){const mark=bars[i].close,dir=position.side==='long'?1:-1,unreal=(mark-position.entryPrice)*position.qty*dir;equity=cash+position.margin+unreal-position.entryFee}else equity=cash;curve.push({time:bars[i].time,equity})
+  }
+  if(position){closePosition(bars.length-1,bars.at(-1).close,'end');if(curve.length)curve[curve.length-1].equity=cash}
+  const wins=trades.filter(t=>t.pnl>0),losses=trades.filter(t=>t.pnl<0),grossProfit=wins.reduce((s,t)=>s+t.pnl,0),grossLoss=Math.abs(losses.reduce((s,t)=>s+t.pnl,0));let peak=capital,maxDD=0;for(const p of curve){peak=Math.max(peak,p.equity);maxDD=Math.max(maxDD,peak?((peak-p.equity)/peak*100):0)}
+  return{capital,finalEquity:cash,netProfit:cash-capital,netProfitPct:(cash/capital-1)*100,totalTrades:trades.length,wins:wins.length,losses:losses.length,winRate:trades.length?wins.length/trades.length*100:0,profitFactor:grossLoss?grossProfit/grossLoss:(grossProfit?Infinity:0),maxDrawdownPct:maxDD,avgTrade:trades.length?trades.reduce((s,t)=>s+t.pnl,0)/trades.length:0,bestTrade:trades.length?Math.max(...trades.map(t=>t.pnl)):0,worstTrade:trades.length?Math.min(...trades.map(t=>t.pnl)):0,trades,curve}
+}
+function applySlip(price,action,slip){return action==='buy'?price*(1+slip):price*(1-slip)}
