@@ -1,0 +1,117 @@
+name: Build iOS IPA
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: read
+
+jobs:
+  build-ios:
+    name: Build unsigned IPA
+    runs-on: macos-26
+    timeout-minutes: 35
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Read version
+        id: meta
+        shell: bash
+        run: echo "version=$(node -p \"require('./package.json').version\")" >> "$GITHUB_OUTPUT"
+
+      - name: Run core tests
+        run: npm test
+
+      - name: Install Capacitor 8 for this build
+        run: npm install --no-save @capacitor/core@8 @capacitor/cli@8 @capacitor/ios@8
+
+      - name: Prepare web bundle
+        run: npm run mobile:prepare
+
+      - name: Create iOS project (SPM)
+        run: npx cap add ios --packagemanager SPM
+
+      - name: Apply app version
+        shell: bash
+        run: |
+          VERSION="${{ steps.meta.outputs.version }}"
+          /usr/bin/sed -i '' -E "s/MARKETING_VERSION = [^;]+;/MARKETING_VERSION = $VERSION;/g" ios/App/App.xcodeproj/project.pbxproj
+          /usr/bin/sed -i '' -E "s/CURRENT_PROJECT_VERSION = [^;]+;/CURRENT_PROJECT_VERSION = $GITHUB_RUN_NUMBER;/g" ios/App/App.xcodeproj/project.pbxproj
+
+      - name: Sync web bundle into iOS
+        run: npx cap sync ios
+
+      - name: Try to apply BCS icon
+        shell: bash
+        run: |
+          set +e
+          cp assets/icon-512.png assets/icon.png
+          sips -z 1024 1024 assets/icon.png --out assets/icon.png >/dev/null 2>&1
+          npx --yes @capacitor/assets@latest generate --ios \
+            --iconBackgroundColor '#0b0f14' \
+            --iconBackgroundColorDark '#0b0f14' \
+            --splashBackgroundColor '#0b0f14' \
+            --splashBackgroundColorDark '#0b0f14'
+          echo "Icon generation finished with status $? (build continues even if the asset helper is unavailable)."
+          exit 0
+
+      - name: Show Xcode version
+        run: xcodebuild -version
+
+      - name: Resolve Swift packages
+        run: |
+          xcodebuild \
+            -project ios/App/App.xcodeproj \
+            -scheme App \
+            -resolvePackageDependencies
+
+      - name: Build unsigned device app
+        run: |
+          rm -rf build
+          xcodebuild \
+            -project ios/App/App.xcodeproj \
+            -scheme App \
+            -configuration Release \
+            -sdk iphoneos \
+            -destination 'generic/platform=iOS' \
+            -derivedDataPath build/DerivedData \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY='' \
+            build
+
+      - name: Package unsigned IPA
+        id: package
+        shell: bash
+        run: |
+          set -euo pipefail
+          APP_PATH="$(find build/DerivedData/Build/Products/Release-iphoneos -maxdepth 1 -type d -name '*.app' -print -quit)"
+          if [ -z "$APP_PATH" ]; then
+            echo "No .app bundle found"
+            exit 1
+          fi
+          rm -rf build/Payload
+          mkdir -p build/Payload
+          cp -R "$APP_PATH" build/Payload/
+          IPA="BCS-Chart-Studio-v${{ steps.meta.outputs.version }}-unsigned.ipa"
+          (cd build && /usr/bin/zip -qry "$IPA" Payload)
+          echo "ipa=build/$IPA" >> "$GITHUB_OUTPUT"
+          /usr/bin/unzip -l "build/$IPA" | head -40
+
+      - name: Upload IPA artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: BCS-Chart-Studio-v${{ steps.meta.outputs.version }}-unsigned-IPA
+          path: ${{ steps.package.outputs.ipa }}
+          if-no-files-found: error
+          retention-days: 30
