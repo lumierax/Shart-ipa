@@ -1,0 +1,11 @@
+{
+  "appId": "com.bcs.chartstudio",
+  "appName": "BCS Chart Studio",
+  "webDir": "www",
+  "ios": {
+    "contentInset": "automatic",
+    "backgroundColor": "#0b0f14",
+    "allowsLinkPreview": false,
+    "preferredContentMode": "mobile"
+  }
+}

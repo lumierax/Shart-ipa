@@ -1,0 +1,12 @@
+{
+  "name": "binance-chart-studio",
+  "version": "1.5.0",
+  "private": true,
+  "type": "module",
+  "description": "Zero-subscription local-first Binance charting platform with GitHub-built iOS IPA support.",
+  "scripts": {
+    "start": "node server.mjs",
+    "test": "node tests/core.test.mjs",
+    "mobile:prepare": "node scripts/prepare-mobile.mjs"
+  }
+}
