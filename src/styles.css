@@ -98,3 +98,152 @@ body.resizing-panels{cursor:col-resize!important;user-select:none!important}body
   .tool-rail.mobile-open{bottom:calc(36px + var(--safe-bottom));padding-left:max(6px,var(--safe-left));padding-right:max(6px,var(--safe-right))}
   .replay-bar{bottom:calc(8px + var(--safe-bottom))}
 }
+
+/* v1.5.3 — iPhone chart-first interface. Desktop layout above remains unchanged. */
+.mobile-only,.mobile-surface-backdrop,.mobile-more-sheet,.mobile-chart-bar,.mobile-bottom-nav{display:none}
+
+@media(max-width:900px){
+  :root{--mobile-nav-h:66px;--mobile-action-h:48px;--mobile-top-h:84px;--topbar:0px;--rail:0px;--left:0px;--right:0px;--bottom:0px}
+  html,body,#app{position:fixed;inset:0;width:100%;height:100dvh;overflow:hidden!important;overscroll-behavior:none;background:#05080c}
+  body{touch-action:manipulation;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
+  input,textarea{user-select:text;-webkit-user-select:text}
+  .app-shell{display:block!important;position:fixed;inset:0;height:100dvh;overflow:hidden;background:var(--bg)}
+  .mobile-only{display:flex}
+  .panel-resizer,.edge-handle{display:none!important}
+
+  /* Chart takes the whole viewport. Nothing in the page itself scrolls. */
+  .workspace-shell{display:block!important;position:fixed!important;inset:0!important;width:100vw;height:100dvh;min-width:0;min-height:0;background:var(--bg);z-index:1;overflow:hidden}
+  .workspace{position:absolute;inset:0;height:100%!important;width:100%;overflow:hidden!important;display:grid}
+  .workspace.layout-1{grid-template-columns:1fr;grid-template-rows:1fr}
+  .workspace.layout-2{grid-template-columns:1fr;grid-template-rows:1fr 1fr;overflow:hidden!important}
+  .workspace.layout-4{display:grid!important;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;overflow:hidden!important}
+  .workspace.layout-6{display:grid!important;grid-template-columns:1fr 1fr;grid-template-rows:repeat(3,1fr);overflow:hidden!important}
+  .workspace.layout-4 .chart-cell,.workspace.layout-6 .chart-cell{height:auto!important;border-bottom:1px solid var(--border)}
+  .chart-cell{min-height:0!important;overflow:hidden}
+  .chart-canvas{touch-action:none}
+  .chart-head{display:none!important}
+
+  /* TradingView-like floating symbol/price header. */
+  .topbar{display:flex!important;position:fixed!important;z-index:35;top:0;left:0;right:0;height:calc(var(--mobile-top-h) + var(--safe-top));padding:calc(var(--safe-top) + 9px) max(14px,var(--safe-right)) 14px max(14px,var(--safe-left));align-items:flex-start;border:0;background:linear-gradient(180deg,rgba(5,8,12,.97) 0%,rgba(5,8,12,.72) 68%,rgba(5,8,12,0) 100%);pointer-events:none;direction:ltr;overflow:visible}
+  .topbar .brand,.topbar #marketSelect,.topbar .timeframe-bar,.topbar .tf-more,.topbar .chart-type-select,.topbar .topbar-actions{display:none!important}
+  .topbar .market-group{display:flex!important;min-width:0;margin:0;pointer-events:auto}
+  .topbar .symbol-button{width:auto;min-width:0;height:36px;padding:0 4px;border:0;background:transparent;font-size:21px;font-weight:600;letter-spacing:.1px;color:#eef2f7;gap:9px}
+  .topbar .symbol-button .muted{font-size:12px}
+
+  .status-strip{display:flex!important;position:fixed!important;z-index:34;top:calc(var(--safe-top) + 49px);left:max(14px,var(--safe-left));right:max(14px,var(--safe-right));height:25px;padding:0;background:transparent;border:0;gap:10px;font-size:12px;pointer-events:none;direction:ltr}
+  .status-strip #connectionStatus{font-size:0}
+  .status-strip #connectionStatus i{width:12px;height:12px;border:2px solid rgba(255,255,255,.15)}
+  .status-strip #priceStatus{font-size:15px;font-variant-numeric:tabular-nums;color:var(--muted)}
+  .status-strip #ohlcStatus,.status-strip #dataStatus{display:none!important}
+
+  .chart-indicator-legend{top:calc(var(--safe-top) + 82px)!important;left:10px;right:72px;max-width:none!important;z-index:20;pointer-events:auto}
+  .chart-indicator-row{background:rgba(5,8,12,.48);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+  .chart-indicator-name{max-width:170px}
+  .chart-indicator-params{display:none}
+  .chart-indicator-actions{opacity:1}
+  .chart-controls{display:none!important}
+
+  /* Fixed chart action strip — only this strip and sheets move, never the page. */
+  .mobile-chart-bar{display:flex;position:fixed;z-index:60;left:0;right:0;bottom:calc(var(--mobile-nav-h) + var(--safe-bottom));height:var(--mobile-action-h);padding:0 max(7px,var(--safe-right)) 0 max(7px,var(--safe-left));align-items:center;gap:2px;background:rgba(5,8,12,.96);border-top:1px solid rgba(129,144,163,.16);border-bottom:1px solid rgba(129,144,163,.16);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);direction:ltr;overflow:hidden}
+  .mobile-chart-bar>button,.mobile-chart-bar .mobile-tf-wrap{flex:0 0 36px;height:42px;display:grid;place-items:center;border:0;background:transparent;color:#cbd3dd;border-radius:8px;padding:0;font-size:20px}
+  .mobile-chart-bar>button:active,.mobile-chart-bar>button.active{background:rgba(255,255,255,.08);color:#fff}
+  .mobile-chart-bar .mobile-draw-main{font-size:25px;color:#f1f4f8}
+  .mobile-tf-wrap{flex-basis:51px!important;position:relative}
+  .mobile-tf-wrap select{appearance:none;-webkit-appearance:none;width:100%;height:100%;min-height:0;border:0;background:transparent;color:#f1f4f8;text-align:center;padding:0 3px;font-size:17px;font-weight:650;outline:0}
+  .mobile-symbol-quick{flex:1 1 auto!important;min-width:66px;max-width:112px!important;justify-content:flex-end!important;padding:0 5px!important;font-size:17px!important;font-weight:650;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .mobile-symbol-quick span{overflow:hidden;text-overflow:ellipsis}
+
+  .mobile-bottom-nav{display:grid;position:fixed;z-index:61;left:0;right:0;bottom:0;height:calc(var(--mobile-nav-h) + var(--safe-bottom));padding:2px max(5px,var(--safe-right)) var(--safe-bottom) max(5px,var(--safe-left));grid-template-columns:repeat(5,1fr);background:rgba(5,8,12,.98);border-top:1px solid rgba(129,144,163,.18);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);direction:rtl}
+  .mobile-bottom-nav button{border:0;background:transparent;color:#bac3cf;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;min-width:0;padding:3px 1px;border-radius:9px}
+  .mobile-bottom-nav button b{font-size:22px;line-height:1;font-weight:500}
+  .mobile-bottom-nav button span{font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+  .mobile-bottom-nav button.active{color:#fff}
+  .mobile-bottom-nav button.active b{color:#fff;filter:drop-shadow(0 0 6px rgba(76,125,255,.38))}
+
+  /* Shared dimmer for all in-app sheets. */
+  .mobile-surface-backdrop{display:block;position:fixed;inset:0;z-index:110;background:rgba(0,0,0,.48);opacity:0;visibility:hidden;transition:opacity .2s ease,visibility .2s;backdrop-filter:blur(1.5px);-webkit-backdrop-filter:blur(1.5px)}
+  .mobile-surface-backdrop.active{opacity:1;visibility:visible}
+  body.mobile-surface-open .mobile-chart-bar,body.mobile-surface-open .mobile-bottom-nav{filter:brightness(.68)}
+
+  /* More menu / analysis hub. */
+  .mobile-more-sheet{display:block;position:fixed;z-index:130;left:0;right:0;bottom:0;max-height:82dvh;min-height:48dvh;overflow-y:auto;overscroll-behavior:contain;background:#171a1f;border:1px solid rgba(255,255,255,.08);border-bottom:0;border-radius:22px 22px 0 0;padding:7px max(16px,var(--safe-right)) calc(18px + var(--safe-bottom)) max(16px,var(--safe-left));transform:translateY(105%);transition:transform .25s cubic-bezier(.2,.8,.2,1);box-shadow:0 -20px 60px rgba(0,0,0,.55);direction:rtl}
+  .mobile-more-sheet.open{transform:translateY(0)}
+  .mobile-sheet-handle,.mobile-panel-handle{width:78px;height:5px;flex:0 0 5px;margin:0 auto 10px;border-radius:999px;background:#62666d;opacity:.85;touch-action:none}
+  .mobile-sheet-head,.mobile-panel-head{display:flex;align-items:center;gap:10px;direction:rtl;padding:0 2px 12px}
+  .mobile-sheet-head>div{display:flex;flex-direction:column;margin-inline-start:auto;text-align:right}
+  .mobile-sheet-head strong,.mobile-panel-head strong{font-size:24px;line-height:1.2}
+  .mobile-sheet-head span,.mobile-panel-head span{font-size:11px;color:#8f98a5;margin-top:3px}
+  .mobile-sheet-head button,.mobile-panel-head button{width:42px;height:42px;flex:0 0 42px;border:0;border-radius:50%;background:#2b2e34;color:#d5d9df;font-size:25px;display:grid;place-items:center}
+  .mobile-more-primary{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;padding:4px 0 16px;border-bottom:1px solid rgba(255,255,255,.08)}
+  .mobile-more-primary button,.mobile-more-grid button{border:1px solid rgba(255,255,255,.08);background:#23262b;color:#e7ebf0;border-radius:15px;min-height:76px;padding:11px;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:8px;text-align:center}
+  .mobile-more-primary button b,.mobile-more-grid button b{font-size:24px;font-weight:500;color:#d9dde3}
+  .mobile-more-primary button span,.mobile-more-grid button span{font-size:12px}
+  .mobile-sheet-section-title{font-size:16px;color:#9ca3ae;text-align:right;padding:17px 3px 8px}
+  .mobile-more-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+
+  /* Existing desktop panels become draggable bottom sheets on iPhone. */
+  .left-panel,.right-panel,.bottom-panel,.tool-rail{display:none!important}
+  .left-panel.mobile-sheet-open,.right-panel.mobile-sheet-open,.bottom-panel.mobile-sheet-open,.tool-rail.mobile-sheet-open{display:flex!important;position:fixed!important;z-index:130!important;left:0!important;right:0!important;top:auto!important;bottom:0!important;width:100%!important;max-width:none!important;height:min(78dvh,760px)!important;min-height:46dvh;background:#171a1f!important;border:1px solid rgba(255,255,255,.08)!important;border-bottom:0!important;border-radius:22px 22px 0 0!important;box-shadow:0 -20px 60px rgba(0,0,0,.55)!important;transform:none!important;padding:7px max(10px,var(--safe-right)) var(--safe-bottom) max(10px,var(--safe-left))!important;overflow:hidden!important;flex-direction:column!important;direction:rtl!important}
+  .bottom-panel.mobile-sheet-open{height:min(88dvh,860px)!important}
+  .mobile-panel-handle{display:block!important;margin-bottom:5px}
+  .mobile-panel-head{display:flex!important;flex:0 0 auto;padding:0 6px 10px;border-bottom:1px solid rgba(255,255,255,.06)}
+  .mobile-panel-head strong{font-size:20px;margin-inline-start:auto}
+  .mobile-panel-head span{display:none}
+  .panel-tabs,.bottom-tabs{flex:0 0 42px;background:transparent!important;overflow-x:auto;overflow-y:hidden;scrollbar-width:none;border-bottom:1px solid rgba(255,255,255,.08);direction:ltr}
+  .panel-tabs::-webkit-scrollbar,.bottom-tabs::-webkit-scrollbar{display:none}
+  .panel-tabs button,.bottom-tabs button{height:42px;white-space:nowrap}
+  .panel-content,.bottom-content{height:auto!important;min-height:0;flex:1 1 auto;overflow:auto!important;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
+  .panel-content.active,.bottom-content.active{display:block}
+  .bottom-tabs #bottomPanelToggle{display:none}
+
+  /* Drawing sheet: pen opens a real tool picker, not a horizontal desktop rail. */
+  .tool-rail.mobile-sheet-open{display:grid!important;height:min(76dvh,720px)!important;grid-template-columns:repeat(4,minmax(0,1fr));grid-auto-rows:min-content;gap:7px;align-content:start;overflow-y:auto!important;padding-bottom:calc(16px + var(--safe-bottom))!important}
+  .tool-rail .mobile-sheet-handle,.tool-rail .mobile-panel-head{grid-column:1/-1}
+  .tool-rail .mobile-panel-head{display:flex!important}
+  .tool-rail.mobile-sheet-open>button{width:100%!important;height:70px!important;min-width:0!important;border:1px solid rgba(255,255,255,.075)!important;background:#23262b!important;border-radius:13px!important;color:#e5e9ee!important;display:flex!important;flex-direction:column;align-items:center;justify-content:center;gap:5px;padding:6px 3px!important;font-size:20px!important;box-shadow:none!important}
+  .tool-rail.mobile-sheet-open>button::after{content:attr(title);display:block;max-width:100%;font-size:8.5px;line-height:1.1;color:#aab2bd;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .tool-rail.mobile-sheet-open>button.active{border-color:#4c7dff!important;background:rgba(76,125,255,.14)!important;color:#fff!important}
+  .tool-rail.mobile-sheet-open .rail-separator{display:none!important}
+
+  /* Script/backtest sheets stay usable without moving the page. */
+  .scripts-layout{height:100%;display:flex;flex-direction:column;min-height:0}
+  .script-list-column{display:block!important;flex:0 0 30%;min-height:120px;border:0;border-bottom:1px solid var(--border);overflow:auto}
+  .editor-column{flex:1 1 auto;min-height:220px}
+  .editor-head{overflow-x:auto;flex-wrap:nowrap}
+  .editor-head input{min-width:125px;width:125px}.editor-head select{min-width:90px;width:90px}
+  .metrics-grid{grid-template-columns:repeat(2,1fr)!important}.backtest-grid,.paper-layout{grid-template-columns:1fr!important}.backtest-toolbar{align-items:stretch}.backtest-toolbar label{flex:1 1 42%}.backtest-toolbar input{width:100%}
+
+  /* Modals are bottom sheets too; their content scrolls internally. */
+  .modal-backdrop{place-items:end center!important;padding:0!important;background:rgba(0,0,0,.48);backdrop-filter:blur(2px);-webkit-backdrop-filter:blur(2px)}
+  .modal{width:100%!important;max-width:none!important;max-height:88dvh!important;border-radius:22px 22px 0 0!important;border-bottom:0!important;margin:0!important;box-shadow:0 -20px 60px rgba(0,0,0,.55)!important;padding-bottom:var(--safe-bottom);direction:ltr}
+  .modal-head{min-height:54px;padding:10px 14px}.modal-head h2{font-size:18px}.modal-head button{width:36px;height:36px;border-radius:50%;background:var(--panel-3)}
+  .symbol-results,.indicator-catalog{max-height:calc(88dvh - 120px);overflow:auto;overscroll-behavior:contain}
+  .settings-grid{grid-template-columns:1fr!important}.settings-grid .full{grid-column:1}.layout-options{grid-template-columns:1fr 1fr!important}
+
+  /* Replay floats above the fixed bars. */
+  .replay-bar{z-index:75;left:7px!important;right:7px!important;bottom:calc(var(--mobile-nav-h) + var(--mobile-action-h) + var(--safe-bottom) + 8px)!important;transform:none!important;max-width:none;overflow-x:auto;justify-content:flex-start;border-radius:12px;background:rgba(17,22,29,.97);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
+  .replay-bar #replayStartHereButton{display:none}
+
+  /* Active sheet means no accidental chart touches behind it. */
+  body.mobile-surface-open .workspace-shell{pointer-events:none}
+  body.mobile-surface-open .mobile-more-sheet,body.mobile-surface-open .mobile-sheet-open,body.mobile-surface-open .modal-backdrop{pointer-events:auto}
+}
+
+@media(max-width:360px){
+  .mobile-chart-bar{gap:0;padding-inline:3px}.mobile-chart-bar>button{flex-basis:32px}.mobile-chart-bar #mobileShareButton{display:none}.mobile-symbol-quick{max-width:86px!important}.tool-rail.mobile-sheet-open{grid-template-columns:repeat(3,minmax(0,1fr))}
+}
+
+@media(max-width:900px) and (orientation:landscape){
+  :root{--mobile-nav-h:52px;--mobile-action-h:43px;--mobile-top-h:62px}
+  .topbar{height:calc(var(--mobile-top-h) + var(--safe-top));padding-top:calc(var(--safe-top) + 4px)}
+  .topbar .symbol-button{font-size:17px;height:30px}.status-strip{top:calc(var(--safe-top) + 33px)}
+  .chart-indicator-legend{top:calc(var(--safe-top) + 58px)!important}
+  .mobile-bottom-nav button span{font-size:9px}.mobile-bottom-nav button b{font-size:18px}
+  .mobile-more-sheet,.left-panel.mobile-sheet-open,.right-panel.mobile-sheet-open,.bottom-panel.mobile-sheet-open,.tool-rail.mobile-sheet-open{max-width:640px!important;left:50%!important;right:auto!important;transform:translateX(-50%)!important;width:min(94vw,640px)!important}
+  .mobile-more-sheet{transform:translate(-50%,105%)!important}.mobile-more-sheet.open{transform:translate(-50%,0)!important}
+}
+@media(max-width:900px){
+  .mobile-more-controls{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:13px 0 2px}
+  .mobile-more-controls label{display:flex;flex-direction:column;gap:6px;text-align:right;color:#9ca3ae;font-size:11px}
+  .mobile-more-controls select{width:100%;height:42px;min-height:42px;border-radius:12px;background:#23262b;border:1px solid rgba(255,255,255,.08);padding:0 10px;color:#edf1f5}
+}

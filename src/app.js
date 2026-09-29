@@ -10,6 +10,8 @@ import {PaperBroker} from './paper.js';
 import {debounce,clamp,formatPrice,formatNumber,formatPct,formatDate,escapeHtml,downloadJSON,parseJSONFile,uid} from './utils.js';
 
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
+const MOBILE_BREAKPOINT=900;
+const isMobileUI=()=>window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT}px)`).matches;
 const CHART_TFS=['1m','3m','5m','15m','30m','1h','2h','4h','6h','8h','12h','1d','3d','1w','1M'];
 const TF_LABEL=Object.fromEntries(CHART_TFS.map(tf=>[tf,tf.replace('h','H').replace('d','D').replace('w','W')]));
 const timeframeOptions=selected=>CHART_TFS.map(tf=>`<option value="${tf}" ${tf===selected?'selected':''}>${TF_LABEL[tf]||tf}</option>`).join('');
@@ -31,7 +33,7 @@ function wireClient(){
 }
 function setConnection(status,text){const el=$('#connectionStatus');if(!el)return;el.className=`status-dot ${status}`;el.innerHTML=`<i></i>${text}`}
 function syncControls(){
-  $('#marketSelect').value=app.market;$('#symbolText').textContent=app.symbol;if($('#chartTypeSelect'))$('#chartTypeSelect').value=app.activeChart?.chartType||'candles';if($('#priceScaleModeSelect'))$('#priceScaleModeSelect').value=app.activeChart?.scaleMode||'linear';$('#detailSymbol').textContent=app.symbol;$('#detailMarket').textContent=app.market==='spot'?'Spot':'Futures';$$('#timeframeBar button').forEach(b=>b.classList.toggle('active',b.dataset.tf===app.timeframe));if($('#mobileTimeframeSelect'))$('#mobileTimeframeSelect').value=app.timeframe;syncTf();$('#themeSelect').value=app.settings.theme;$('#gridToggle').checked=app.settings.grid;$('#volumeToggle').checked=app.settings.volume;$('#autoScaleToggle').checked=app.settings.autoScale;$('#syncCrosshairToggle').checked=app.settings.syncCrosshair;$('#syncSymbolToggle').checked=app.settings.syncSymbol;$('#syncTimeframeToggle').checked=app.settings.syncTimeframe;$('#listingRefreshSelect').value=String(app.settings.listingRefresh);$('#languageSelect').value=app.settings.language;$('#defaultMarketSelect').value=app.market
+  $('#marketSelect').value=app.market;if($('#mobileMarketSelect'))$('#mobileMarketSelect').value=app.market;$('#symbolText').textContent=app.symbol;if($('#mobileSymbolText'))$('#mobileSymbolText').textContent=app.symbol;if($('#chartTypeSelect'))$('#chartTypeSelect').value=app.activeChart?.chartType||'candles';if($('#mobileChartTypeSelect'))$('#mobileChartTypeSelect').value=app.activeChart?.chartType||'candles';if($('#priceScaleModeSelect'))$('#priceScaleModeSelect').value=app.activeChart?.scaleMode||'linear';$('#detailSymbol').textContent=app.symbol;$('#detailMarket').textContent=app.market==='spot'?'Spot':'Futures';$$('#timeframeBar button').forEach(b=>b.classList.toggle('active',b.dataset.tf===app.timeframe));if($('#mobileTimeframeSelect'))$('#mobileTimeframeSelect').value=app.timeframe;syncTf();$('#themeSelect').value=app.settings.theme;$('#gridToggle').checked=app.settings.grid;$('#volumeToggle').checked=app.settings.volume;$('#autoScaleToggle').checked=app.settings.autoScale;$('#syncCrosshairToggle').checked=app.settings.syncCrosshair;$('#syncSymbolToggle').checked=app.settings.syncSymbol;$('#syncTimeframeToggle').checked=app.settings.syncTimeframe;$('#listingRefreshSelect').value=String(app.settings.listingRefresh);$('#languageSelect').value=app.settings.language;$('#defaultMarketSelect').value=app.market
 }
 function applyTheme(){document.body.classList.toggle('light',app.settings.theme==='light')}
 function panelSizes(){
@@ -120,21 +122,89 @@ function wireUI(){
   $('#chartTypeSelect').addEventListener('change',e=>{if(app.activeChart){app.activeChart.setChartType(e.target.value);renderChartHead(app.activeChart);saveWorkspaceDebounced()}});
   $('#priceScaleModeSelect')?.addEventListener('change',e=>{if(app.activeChart){app.activeChart.setScaleMode(e.target.value);saveWorkspaceDebounced()}});
   $('#marketSelect').addEventListener('change',async e=>{app.market=e.target.value;app.client.closeAll();app.client.setMarket(app.market);app.scanner=new Scanner(app.client);setConnection('loading','Loading market');try{app.symbols=await app.client.loadExchangeInfo(true);if(!app.client.symbolMap.has(app.symbol))app.symbol=app.symbols.find(s=>s.quote==='USDT')?.symbol||app.symbol;renderSymbolResults();renderWatchlist();await setLayout(app.layout);await refreshScanner();setConnection('connected','Live')}catch(err){logError(err);setConnection('error','Offline')}saveWorkspaceDebounced()});
-  $('#symbolButton').addEventListener('click',()=>openModal('symbolDialog'));$('#symbolSearch').addEventListener('input',renderSymbolResults);$('#watchlistSearch').addEventListener('input',renderWatchlist);$$('#timeframeBar button').forEach(b=>b.addEventListener('click',()=>changeTimeframe(b.dataset.tf)));$('#mobileTimeframeSelect').addEventListener('change',e=>changeTimeframe(e.target.value));$('#mobileToolsButton').addEventListener('click',()=>$('#toolRail').classList.toggle('mobile-open'));
+  $('#symbolButton').addEventListener('click',()=>openModal('symbolDialog'));$('#symbolSearch').addEventListener('input',renderSymbolResults);$('#watchlistSearch').addEventListener('input',renderWatchlist);$$('#timeframeBar button').forEach(b=>b.addEventListener('click',()=>changeTimeframe(b.dataset.tf)));$('#mobileTimeframeSelect').addEventListener('change',e=>changeTimeframe(e.target.value));$('#mobileToolsButton').addEventListener('click',()=>isMobileUI()?openMobileSurface('tools'):$('#toolRail').classList.toggle('mobile-open'));
   $('#layoutButton').addEventListener('click',()=>openModal('layoutDialog'));$$('[data-layout]').forEach(b=>b.addEventListener('click',()=>setLayout(b.dataset.layout)));$('#indicatorButton').addEventListener('click',()=>{renderIndicatorCatalog();openModal('indicatorDialog')});$('#replayButton').addEventListener('click',()=>toggleReplay());$('#saveWorkspaceButton').addEventListener('click',()=>saveWorkspace(true));$('#settingsButton').addEventListener('click',()=>openModal('settingsDialog'));$$('[data-close-modal]').forEach(b=>b.addEventListener('click',()=>closeModal(b.dataset.closeModal)));$$('.modal-backdrop').forEach(m=>m.addEventListener('pointerdown',e=>{if(e.target===m)closeModal(m.id)}));
-  $$('[data-panel-tab]').forEach(b=>b.addEventListener('click',()=>activateTab('[data-panel-tab]','.panel-tab-content',b.dataset.panelTab+'Panel',b)));$$('[data-right-tab]').forEach(b=>b.addEventListener('click',()=>activateTab('[data-right-tab]','.right-tab-content',b.dataset.rightTab==='settings'?'chartSettingsPanel':b.dataset.rightTab+'Panel',b)));$$('[data-bottom-tab]').forEach(b=>b.addEventListener('click',()=>{activateTab('[data-bottom-tab]','.bottom-tab-content',b.dataset.bottomTab+'Bottom',b);if(innerWidth<760)$('#bottomPanel').classList.add('mobile-open')}));$('#bottomPanelToggle').addEventListener('click',()=>{if(innerWidth<760)$('#bottomPanel').classList.toggle('mobile-open');else{$('#bottomPanel').classList.toggle('collapsed');$('#app').classList.toggle('bottom-min')}});
-  $$('#toolRail [data-tool]').forEach(b=>b.addEventListener('click',()=>{if(!app.activeChart)return;$$('#toolRail [data-tool]').forEach(x=>x.classList.toggle('active',x===b));app.activeChart.drawings.setTool(b.dataset.tool)}));$('#magnetButton').addEventListener('click',e=>{if(!app.activeChart)return;app.activeChart.drawings.magnet=!app.activeChart.drawings.magnet;e.currentTarget.classList.toggle('active',app.activeChart.drawings.magnet)});$('#undoButton').addEventListener('click',()=>app.activeChart?.drawings.undo());$('#redoButton').addEventListener('click',()=>app.activeChart?.drawings.redo());$('#deleteDrawingButton').addEventListener('click',()=>app.activeChart?.drawings.deleteSelected());
+  $$('[data-panel-tab]').forEach(b=>b.addEventListener('click',()=>activateTab('[data-panel-tab]','.panel-tab-content',b.dataset.panelTab+'Panel',b)));$$('[data-right-tab]').forEach(b=>b.addEventListener('click',()=>activateTab('[data-right-tab]','.right-tab-content',b.dataset.rightTab==='settings'?'chartSettingsPanel':b.dataset.rightTab+'Panel',b)));$$('[data-bottom-tab]').forEach(b=>b.addEventListener('click',()=>{activateTab('[data-bottom-tab]','.bottom-tab-content',b.dataset.bottomTab+'Bottom',b);if(isMobileUI())$('#bottomPanel').classList.add('mobile-sheet-open')}));$('#bottomPanelToggle').addEventListener('click',()=>{if(isMobileUI())closeMobileSurfaces();else{$('#bottomPanel').classList.toggle('collapsed');$('#app').classList.toggle('bottom-min')}});
+  $$('#toolRail [data-tool]').forEach(b=>b.addEventListener('click',()=>{if(!app.activeChart)return;$$('#toolRail [data-tool]').forEach(x=>x.classList.toggle('active',x===b));app.activeChart.drawings.setTool(b.dataset.tool);if(isMobileUI())closeMobileSurfaces()}));$('#magnetButton').addEventListener('click',e=>{if(!app.activeChart)return;app.activeChart.drawings.magnet=!app.activeChart.drawings.magnet;e.currentTarget.classList.toggle('active',app.activeChart.drawings.magnet)});$('#undoButton').addEventListener('click',()=>app.activeChart?.drawings.undo());$('#redoButton').addEventListener('click',()=>app.activeChart?.drawings.redo());$('#deleteDrawingButton').addEventListener('click',()=>app.activeChart?.drawings.deleteSelected());
   $('#scannerSort').addEventListener('change',renderScanner);$('#refreshScannerButton').addEventListener('click',()=>refreshScanner());
   $('#themeSelect').addEventListener('change',e=>{app.settings.theme=e.target.value;applyTheme();app.charts.forEach(c=>c.requestDraw());saveWorkspaceDebounced()});$('#gridToggle').addEventListener('change',e=>updateChartSetting('grid',e.target.checked));$('#volumeToggle').addEventListener('change',e=>updateChartSetting('volume',e.target.checked));$('#autoScaleToggle').addEventListener('change',e=>updateChartSetting('autoScale',e.target.checked));$('#syncCrosshairToggle').addEventListener('change',e=>{app.settings.syncCrosshair=e.target.checked;saveWorkspaceDebounced()});$('#syncSymbolToggle').addEventListener('change',e=>{app.settings.syncSymbol=e.target.checked;saveWorkspaceDebounced()});$('#syncTimeframeToggle').addEventListener('change',e=>{app.settings.syncTimeframe=e.target.checked;saveWorkspaceDebounced()});$('#listingRefreshSelect').addEventListener('change',e=>{app.settings.listingRefresh=+e.target.value;scheduleListingRefresh();saveWorkspaceDebounced()});
   $('#newScriptButton').addEventListener('click',newScript);$('#saveScriptButton').addEventListener('click',saveCurrentScript);$('#runScriptButton').addEventListener('click',runSelectedScript);$('#addScriptToChartButton').addEventListener('click',runSelectedScript);$('#favoriteScriptButton').addEventListener('click',toggleFavoriteScript);$('#runBacktestButton').addEventListener('click',runSelectedBacktest);
   $('#indicatorSettingsForm').addEventListener('submit',applyIndicatorSettings);$('#resetIndicatorSettingsButton')?.addEventListener('click',resetIndicatorSettings);$('#alertForm').addEventListener('submit',createAlert);$('#paperOrderForm').addEventListener('submit',placePaperOrder);$$('[data-side]').forEach(b=>b.addEventListener('click',()=>{$$('[data-side]').forEach(x=>x.classList.toggle('active',x===b))}));
   $('#exportButton').addEventListener('click',async()=>downloadJSON(`binance-studio-${new Date().toISOString().slice(0,10)}.json`,await db.exportAll()));$('#importButton').addEventListener('click',()=>$('#importFile').click());$('#importFile').addEventListener('change',async e=>{if(!e.target.files[0])return;try{const data=await parseJSONFile(e.target.files[0]);await db.importAll(data);toast('Import complete. Reloading…','success');setTimeout(()=>location.reload(),600)}catch(err){toast(err.message,'error')}});
   $('#languageSelect').addEventListener('change',e=>{app.settings.language=e.target.value;saveWorkspaceDebounced()});
-  document.addEventListener('keydown',keyboardShortcuts);wireEnhancements()
+  document.addEventListener('keydown',keyboardShortcuts);wireEnhancements();wireMobileUI()
 }
 function activateTab(buttonSelector,contentSelector,id,button){$$(buttonSelector).forEach(x=>x.classList.toggle('active',x===button));$$(contentSelector).forEach(x=>x.classList.toggle('active',x.id===id))}
 function updateChartSetting(k,v){app.settings[k]=v;for(const c of app.charts){c[k]=v;if(k==='autoScale'&&v){c.priceZoom=1;c.frozen=null}c.requestDraw()}saveWorkspaceDebounced()}
 function openModal(id){$('#'+id)?.classList.remove('hidden');if(id==='symbolDialog')setTimeout(()=>$('#symbolSearch').focus(),20)}function closeModal(id){$('#'+id)?.classList.add('hidden')}
+
+function setMobileNavActive(name='chart'){$$('#mobileBottomNav [data-mobile-nav]').forEach(b=>b.classList.toggle('active',b.dataset.mobileNav===name))}
+function mobileTab(group,name){
+  if(group==='left'){
+    const b=$(`[data-panel-tab="${name}"]`);if(b)activateTab('[data-panel-tab]','.panel-tab-content',`${name}Panel`,b);
+    const titles={watchlist:'القائمة',scanner:'الماسح',objects:'العناصر'};if($('#mobileLeftTitle'))$('#mobileLeftTitle').textContent=titles[name]||'القائمة';
+  }else if(group==='right'){
+    const b=$(`[data-right-tab="${name}"]`);if(b)activateTab('[data-right-tab]','.right-tab-content',name==='settings'?'chartSettingsPanel':`${name}Panel`,b);
+    const titles={details:'التفاصيل',alerts:'التنبيهات',settings:'إعدادات الشارت'};if($('#mobileRightTitle'))$('#mobileRightTitle').textContent=titles[name]||'التفاصيل';
+  }else if(group==='bottom'){
+    const b=$(`[data-bottom-tab="${name}"]`);if(b)activateTab('[data-bottom-tab]','.bottom-tab-content',`${name}Bottom`,b);
+    const titles={scripts:'سكريبتاتي',backtest:'اختبار الاستراتيجية',paper:'التداول الورقي',log:'السجل'};if($('#mobileBottomTitle'))$('#mobileBottomTitle').textContent=titles[name]||'أدوات التداول';
+  }
+}
+function closeMobileSurfaces(keepBackdrop=false){
+  ['#leftPanel','#rightPanel','#bottomPanel','#toolRail'].forEach(sel=>$(sel)?.classList.remove('mobile-sheet-open','mobile-open'));
+  $('#mobileMoreSheet')?.classList.remove('open');
+  if(!keepBackdrop){$('#mobileSurfaceBackdrop')?.classList.remove('active');$('#mobileSurfaceBackdrop')?.setAttribute('aria-hidden','true');document.body.classList.remove('mobile-surface-open')}
+  setMobileNavActive('chart');
+}
+function openMobileSurface(kind,tab){
+  if(!isMobileUI())return;
+  closeMobileSurfaces(true);
+  const backdrop=$('#mobileSurfaceBackdrop');backdrop?.classList.add('active');backdrop?.setAttribute('aria-hidden','false');document.body.classList.add('mobile-surface-open');
+  if(kind==='left'){mobileTab('left',tab||'watchlist');$('#leftPanel')?.classList.add('mobile-sheet-open');setMobileNavActive(tab==='scanner'?'scanner':'watchlist')}
+  if(kind==='right'){mobileTab('right',tab||'details');$('#rightPanel')?.classList.add('mobile-sheet-open')}
+  if(kind==='bottom'){mobileTab('bottom',tab||'scripts');$('#bottomPanel')?.classList.add('mobile-sheet-open');setMobileNavActive(tab==='backtest'?'backtest':'scripts')}
+  if(kind==='tools'){$('#toolRail')?.classList.add('mobile-sheet-open')}
+  if(kind==='more'){$('#mobileMoreSheet')?.classList.add('open')}
+}
+function runMobileAction(action){
+  closeMobileSurfaces();
+  if(action==='layout')return openModal('layoutDialog');
+  if(action==='details')return openMobileSurface('right','details');
+  if(action==='chart')return openMobileSurface('right','settings');
+  if(action==='scripts')return openMobileSurface('bottom','scripts');
+  if(action==='backtest')return openMobileSurface('bottom','backtest');
+  if(action==='paper')return openMobileSurface('bottom','paper');
+  if(action==='alerts')return openMobileSurface('right','alerts');
+  if(action==='objects')return openMobileSurface('left','objects');
+  if(action==='indicators'){renderIndicatorCatalog();return openModal('indicatorDialog')}
+  if(action==='replay')return toggleReplay();
+  if(action==='save')return saveWorkspace(true);
+  if(action==='open')return $('#importFile')?.click();
+  if(action==='settings')return openModal('settingsDialog');
+}
+function bindSheetDrag(handle,onClose){
+  if(!handle||handle.dataset.dragBound)return;handle.dataset.dragBound='1';let sy=0,dy=0,drag=false;
+  handle.addEventListener('pointerdown',e=>{drag=true;sy=e.clientY;dy=0;handle.setPointerCapture?.(e.pointerId)});
+  handle.addEventListener('pointermove',e=>{if(!drag)return;dy=Math.max(0,e.clientY-sy);const sheet=handle.closest('.mobile-more-sheet,.mobile-sheet-open');if(sheet&&dy>0)sheet.style.transform=`${sheet.id==='mobileMoreSheet'&&matchMedia('(orientation:landscape)').matches?'translateX(-50%) ':''}translateY(${Math.min(dy,180)}px)`});
+  const done=()=>{if(!drag)return;drag=false;const sheet=handle.closest('.mobile-more-sheet,.mobile-sheet-open');if(sheet)sheet.style.transform='';if(dy>70)onClose()};handle.addEventListener('pointerup',done);handle.addEventListener('pointercancel',done);
+}
+function wireMobileUI(){
+  const backdrop=$('#mobileSurfaceBackdrop');backdrop?.addEventListener('click',()=>closeMobileSurfaces());
+  $('#mobileMoreClose')?.addEventListener('click',()=>closeMobileSurfaces());$('#mobileToolsClose')?.addEventListener('click',()=>closeMobileSurfaces());$$('[data-mobile-close]').forEach(b=>b.addEventListener('click',()=>closeMobileSurfaces()));
+  $('#mobileDrawButton')?.addEventListener('click',()=>openMobileSurface('tools'));
+  $('#mobileMoreQuick')?.addEventListener('click',()=>openMobileSurface('more'));
+  $('#mobileMarketSelect')?.addEventListener('change',e=>{const main=$('#marketSelect');if(main){main.value=e.target.value;main.dispatchEvent(new Event('change'))}});
+  $('#mobileChartTypeSelect')?.addEventListener('change',e=>{const main=$('#chartTypeSelect');if(main){main.value=e.target.value;main.dispatchEvent(new Event('change'))}});
+  $('#mobileSymbolQuick')?.addEventListener('click',()=>openModal('symbolDialog'));
+  $('#mobileUndoButton')?.addEventListener('click',()=>app.activeChart?.drawings.undo());$('#mobileRedoButton')?.addEventListener('click',()=>app.activeChart?.drawings.redo());
+  $('#mobileFitButton')?.addEventListener('click',()=>{app.activeChart?.fitContent();app.activeChart?.resetPriceScale()});
+  $('#mobileShareButton')?.addEventListener('click',()=>app.activeChart?.exportImage());
+  $$('#mobileBottomNav [data-mobile-nav]').forEach(b=>b.addEventListener('click',()=>{const n=b.dataset.mobileNav;if(n==='chart')return closeMobileSurfaces();if(n==='watchlist')return openMobileSurface('left','watchlist');if(n==='scanner')return openMobileSurface('left','scanner');if(n==='scripts')return openMobileSurface('bottom','scripts');if(n==='backtest')return openMobileSurface('bottom','backtest')}));
+  $$('#mobileMoreSheet [data-mobile-action]').forEach(b=>b.addEventListener('click',()=>runMobileAction(b.dataset.mobileAction)));
+  bindSheetDrag($('#mobileMoreSheet .mobile-sheet-handle'),()=>closeMobileSurfaces());bindSheetDrag($('#toolRail .mobile-sheet-handle'),()=>closeMobileSurfaces());$$('.mobile-panel-handle').forEach(h=>bindSheetDrag(h,()=>closeMobileSurfaces()));
+  window.addEventListener('resize',()=>{if(!isMobileUI())closeMobileSurfaces()});
+}
 
 function renderSymbolResults(){const el=$('#symbolResults');if(!el)return;const q=($('#symbolSearch')?.value||'').trim().toUpperCase();const syms=app.symbols.filter(s=>(!q||s.symbol.includes(q)||s.base.includes(q))&&(q?s.quote==='USDT'||s.symbol.includes(q):s.quote==='USDT')).slice(0,180);el.innerHTML=syms.map(s=>`<div class="symbol-result" data-symbol="${s.symbol}"><button class="watch-star" data-watch-star="${s.symbol}" title="Watchlist">${app.watchlist.includes(s.symbol)?'★':'☆'}</button><strong>${s.base}</strong><span class="muted">/${s.quote}</span><span class="push muted">${app.market==='spot'?'Spot':'Perp'}</span></div>`).join('');el.querySelectorAll('[data-symbol]').forEach(x=>x.addEventListener('click',()=>changeSymbol(x.dataset.symbol)));el.querySelectorAll('[data-watch-star]').forEach(b=>b.addEventListener('click',e=>{e.stopPropagation();toggleWatchlist(b.dataset.watchStar);renderSymbolResults()}))}
 function renderWatchlist(){const el=$('#watchlistList');if(!el)return;const q=($('#watchlistSearch')?.value||'').trim().toUpperCase();const list=app.watchlist.filter(s=>(!q||s.includes(q))&&app.client?.symbolMap.has(s));el.innerHTML=list.map(s=>{const t=app.tickerMap.get(s);return`<div class="symbol-row" data-symbol="${s}"><div class="symbol-main"><button class="watch-star star" data-remove-watch="${s}" title="Remove">★</button><div><strong>${s.replace('USDT','')}</strong><div class="symbol-meta">${s.endsWith('USDT')?'USDT':''}</div></div></div><span>${formatPrice(t?.price)}</span><span class="${(t?.change||0)>=0?'price-up':'price-down'}">${t?formatPct(t.change):'—'}</span></div>`}).join('');el.querySelectorAll('[data-symbol]').forEach(x=>x.addEventListener('click',()=>changeSymbol(x.dataset.symbol)));el.querySelectorAll('[data-remove-watch]').forEach(b=>b.addEventListener('click',e=>{e.stopPropagation();toggleWatchlist(b.dataset.removeWatch)}))}
