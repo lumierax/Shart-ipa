@@ -32,8 +32,6 @@
         </button>
       </div>
 
-      <select id="mobileTimeframeSelect" class="control compact mobile-timeframe" aria-label="الفريم"><option value="1m">1m</option><option value="5m">5m</option><option value="15m">15m</option><option value="1h">1H</option><option value="4h">4H</option><option value="1d">1D</option></select>
-
       <div id="timeframeBar" class="timeframe-bar" aria-label="الفريمات">
         <button data-tf="1m">1m</button><button data-tf="3m">3m</button><button data-tf="5m">5m</button>
         <button data-tf="15m">15m</button><button data-tf="30m">30m</button><button data-tf="1h" class="active">1H</button>
@@ -55,6 +53,8 @@
     </header>
 
     <aside class="tool-rail" id="toolRail" aria-label="أدوات الرسم">
+      <div class="mobile-sheet-handle mobile-only"></div>
+      <div class="mobile-panel-head mobile-only"><strong>أدوات الرسم</strong><span>اختر أداة ثم ارسم على الشارت</span><button id="mobileToolsClose" type="button" aria-label="إغلاق">×</button></div>
       <button data-tool="cursor" class="active" title="المؤشر">⌖</button>
       <button data-tool="trend" title="Trend Line">╱</button>
       <button data-tool="ray" title="Ray">↗</button>
@@ -82,6 +82,8 @@
     </aside>
 
     <aside class="left-panel panel" id="leftPanel">
+      <div class="mobile-panel-handle mobile-only"></div>
+      <div class="mobile-panel-head mobile-only"><strong id="mobileLeftTitle">القائمة</strong><span>القائمة والماسح والعناصر</span><button type="button" data-mobile-close aria-label="إغلاق">×</button></div>
       <div class="panel-tabs">
         <button data-panel-tab="watchlist" class="active">Watchlist</button>
         <button data-panel-tab="scanner">Scanner</button>
@@ -126,6 +128,8 @@
     </main>
 
     <aside class="right-panel panel" id="rightPanel">
+      <div class="mobile-panel-handle mobile-only"></div>
+      <div class="mobile-panel-head mobile-only"><strong id="mobileRightTitle">التفاصيل</strong><span>تفاصيل الشارت والإعدادات</span><button type="button" data-mobile-close aria-label="إغلاق">×</button></div>
       <div class="panel-tabs">
         <button data-right-tab="details" class="active">Details</button>
         <button data-right-tab="alerts">Alerts</button>
@@ -166,6 +170,8 @@
     </aside>
 
     <section class="bottom-panel" id="bottomPanel">
+      <div class="mobile-panel-handle mobile-only"></div>
+      <div class="mobile-panel-head mobile-only"><strong id="mobileBottomTitle">أدوات التداول</strong><span>السكريبتات والاختبار والتداول الورقي</span><button type="button" data-mobile-close aria-label="إغلاق">×</button></div>
       <div class="bottom-tabs">
         <button data-bottom-tab="scripts" class="active">My Scripts</button>
         <button data-bottom-tab="backtest">Strategy Tester</button>
@@ -214,6 +220,54 @@
     <div id="leftResizer" class="panel-resizer panel-resizer-vertical left-resizer" role="separator" aria-orientation="vertical" aria-label="Resize left panel" title="اسحب لتغيير عرض القائمة • نقرتان للإخفاء/الإظهار"></div>
     <div id="rightResizer" class="panel-resizer panel-resizer-vertical right-resizer" role="separator" aria-orientation="vertical" aria-label="Resize right panel" title="اسحب لتغيير عرض القائمة • نقرتان للإخفاء/الإظهار"></div>
     <div id="bottomResizer" class="panel-resizer panel-resizer-horizontal bottom-resizer" role="separator" aria-orientation="horizontal" aria-label="Resize bottom panel" title="اسحب لتغيير ارتفاع اللوحة • نقرتان للطي/الإظهار"></div>
+
+    <div id="mobileSurfaceBackdrop" class="mobile-surface-backdrop" aria-hidden="true"></div>
+
+    <section id="mobileMoreSheet" class="mobile-more-sheet" aria-label="محور التحليل">
+      <div class="mobile-sheet-handle"></div>
+      <div class="mobile-sheet-head"><button id="mobileMoreClose" type="button" aria-label="إغلاق">×</button><div><strong>محور التحليل</strong><span>إعدادات وأدوات الشارت</span></div></div>
+      <div class="mobile-more-primary">
+        <button type="button" data-mobile-action="chart"><b>▢</b><span>إعداد الرسم البياني</span></button>
+        <button type="button" data-mobile-action="layout"><b>▦</b><span>إدارة التخطيط</span></button>
+        <button type="button" data-mobile-action="save"><b>⇩</b><span>حفظ مساحة العمل</span></button>
+        <button type="button" data-mobile-action="open"><b>▱</b><span>فتح مساحة عمل</span></button>
+      </div>
+      <div class="mobile-more-controls">
+        <label><span>السوق</span><select id="mobileMarketSelect"><option value="spot">Spot</option><option value="futures">USDⓈ-M Futures</option></select></label>
+        <label><span>نوع الشارت</span><select id="mobileChartTypeSelect"><option value="candles">Candles</option><option value="bars">Bars</option><option value="line">Line</option><option value="area">Area</option><option value="heikin">Heikin Ashi</option></select></label>
+      </div>
+      <div class="mobile-sheet-section-title">أدوات</div>
+      <div class="mobile-more-grid">
+        <button type="button" data-mobile-action="indicators"><b>⌁</b><span>المؤشرات</span></button>
+        <button type="button" data-mobile-action="alerts"><b>◴</b><span>تنبيهات</span></button>
+        <button type="button" data-mobile-action="replay"><b>◀▮</b><span>إعادة التشغيل</span></button>
+        <button type="button" data-mobile-action="objects"><b>◫</b><span>العناصر</span></button>
+        <button type="button" data-mobile-action="details"><b>ⓘ</b><span>التفاصيل</span></button>
+        <button type="button" data-mobile-action="scripts"><b>{ }</b><span>سكريبتاتي</span></button>
+        <button type="button" data-mobile-action="backtest"><b>↯</b><span>اختبار الاستراتيجية</span></button>
+        <button type="button" data-mobile-action="paper"><b>⇄</b><span>تداول ورقي</span></button>
+        <button type="button" data-mobile-action="settings"><b>⚙</b><span>إعدادات المنصة</span></button>
+      </div>
+    </section>
+
+    <nav id="mobileChartBar" class="mobile-chart-bar" aria-label="Chart actions">
+      <button id="mobileShareButton" type="button" title="مشاركة صورة الشارت"><b>⇧</b></button>
+      <button id="mobileUndoButton" type="button" title="تراجع"><b>↶</b></button>
+      <button id="mobileFitButton" type="button" title="ملاءمة الشارت"><b>⛶</b></button>
+      <button id="mobileRedoButton" type="button" title="إعادة"><b>↷</b></button>
+      <button id="mobileMoreQuick" type="button" title="المزيد"><b>•••</b></button>
+      <button id="mobileDrawButton" type="button" title="أدوات الرسم" class="mobile-draw-main"><b>✎</b></button>
+      <label class="mobile-tf-wrap" title="الفريم"><select id="mobileTimeframeSelect" aria-label="الفريم"><option value="1m">1m</option><option value="5m">5m</option><option value="15m">15m</option><option value="1h">1H</option><option value="4h">4H</option><option value="1d">1D</option></select></label>
+      <button id="mobileSymbolQuick" type="button" class="mobile-symbol-quick" title="العملة"><span id="mobileSymbolText">BTCUSDT</span></button>
+    </nav>
+
+    <nav id="mobileBottomNav" class="mobile-bottom-nav" aria-label="Mobile navigation">
+      <button type="button" data-mobile-nav="watchlist"><b>☷</b><span>القائمة</span></button>
+      <button type="button" data-mobile-nav="scanner"><b>⌁</b><span>الماسح</span></button>
+      <button type="button" data-mobile-nav="chart" class="active"><b>◉</b><span>الشارت</span></button>
+      <button type="button" data-mobile-nav="scripts"><b>{ }</b><span>سكريبتاتي</span></button>
+      <button type="button" data-mobile-nav="backtest"><b>↯</b><span>اختبار</span></button>
+    </nav>
   </div>
 
   <div id="symbolDialog" class="modal-backdrop hidden">
