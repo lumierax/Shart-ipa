@@ -1,0 +1,17 @@
+import fs from 'node:fs';
+import assert from 'node:assert/strict';
+const html=fs.readFileSync(new URL('../index.html',import.meta.url),'utf8');
+const css=fs.readFileSync(new URL('../src/styles.css',import.meta.url),'utf8');
+const app=fs.readFileSync(new URL('../src/app.js',import.meta.url),'utf8');
+for(const id of ['mobileChartBar','mobileBottomNav','mobileMoreSheet','mobileDrawButton','mobileMoreQuick','mobileTimeframeSelect','mobileSymbolQuick','mobileSurfaceBackdrop']) assert.match(html,new RegExp(`id=["']${id}["']`),`missing ${id}`);
+for(const action of ['indicators','alerts','replay','objects','chart','scripts','backtest','paper','settings']) assert.match(html,new RegExp(`data-mobile-action=["']${action}["']`),`missing mobile action ${action}`);
+assert.match(css,/html,body,#app\{position:fixed;inset:0[^}]*overflow:hidden!important/, 'mobile page must be fixed and non-scrollable');
+assert.match(css,/\.mobile-chart-bar\{display:flex;position:fixed/, 'chart action bar must be fixed');
+assert.match(css,/\.mobile-bottom-nav\{display:grid;position:fixed/, 'bottom navigation must be fixed');
+assert.match(css,/\.tool-rail\.mobile-sheet-open\{display:grid!important/, 'drawing tools must open as a sheet');
+assert.match(app,/mobileDrawButton[^\n]+openMobileSurface\('tools'\)/, 'pen must open drawing sheet');
+assert.match(app,/mobileMoreQuick[^\n]+openMobileSurface\('more'\)/, 'three dots must open analysis sheet');
+assert.match(app,/bindSheetDrag/, 'sheets must support drag-to-dismiss');
+const ids=[...html.matchAll(/\sid=["']([^"']+)["']/g)].map(m=>m[1]);
+const dup=ids.filter((x,i)=>ids.indexOf(x)!==i);assert.deepEqual([...new Set(dup)],[],`duplicate IDs: ${dup.join(', ')}`);
+console.log('PASS: mobile chart-first shell, sheets, fixed bars and drawing/menu actions OK');
