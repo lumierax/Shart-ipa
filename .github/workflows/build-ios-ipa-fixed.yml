@@ -1,0 +1,129 @@
+name: Build iOS IPA
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: read
+
+jobs:
+  build-ios:
+    name: Build unsigned IPA
+    runs-on: macos-26
+    timeout-minutes: 35
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Read version
+        id: meta
+        shell: bash
+        run: echo "version=$(node -p \"require('./package.json').version\")" >> "$GITHUB_OUTPUT"
+
+      - name: Run core tests
+        run: npm test
+
+      - name: Install Capacitor 8.5.2
+        run: npm install --no-save @capacitor/core@8.5.2 @capacitor/cli@8.5.2 @capacitor/ios@8.5.2
+
+      - name: Prepare web bundle
+        run: npm run mobile:prepare
+
+      # CocoaPods is intentionally used here for the CI build path.
+      # It avoids the SPM/Xcode-project parsing failure seen on the first run.
+      - name: Create clean iOS project (CocoaPods)
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf ios
+          npx cap add ios --packagemanager CocoaPods
+          npx cap sync ios
+
+      - name: Install CocoaPods dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          pod --version
+          cd ios/App
+          pod install --repo-update
+
+      - name: Apply BCS app icon safely
+        shell: bash
+        run: |
+          set -euo pipefail
+          ICONSET="ios/App/App/Assets.xcassets/AppIcon.appiconset"
+          if [ -d "$ICONSET" ] && [ -f assets/icon-512.png ]; then
+            cp assets/icon-512.png /tmp/bcs-icon.png
+            sips -z 1024 1024 /tmp/bcs-icon.png --out /tmp/bcs-icon-1024.png >/dev/null
+            TARGET="$(find "$ICONSET" -maxdepth 1 -type f -name '*.png' -print -quit || true)"
+            if [ -n "$TARGET" ]; then
+              cp /tmp/bcs-icon-1024.png "$TARGET"
+              echo "Replaced app icon: $TARGET"
+            else
+              echo "No PNG slot found in AppIcon.appiconset; leaving Capacitor default icon."
+            fi
+          fi
+
+      - name: Show Xcode and validate workspace
+        shell: bash
+        run: |
+          set -euo pipefail
+          xcodebuild -version
+          test -d ios/App/App.xcworkspace
+          xcodebuild -list -workspace ios/App/App.xcworkspace
+
+      - name: Build unsigned device app
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf build
+          xcodebuild \
+            -workspace ios/App/App.xcworkspace \
+            -scheme App \
+            -configuration Release \
+            -sdk iphoneos \
+            -destination 'generic/platform=iOS' \
+            -derivedDataPath build/DerivedData \
+            MARKETING_VERSION='${{ steps.meta.outputs.version }}' \
+            CURRENT_PROJECT_VERSION='${{ github.run_number }}' \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY='' \
+            build
+
+      - name: Package unsigned IPA
+        id: package
+        shell: bash
+        run: |
+          set -euo pipefail
+          APP_PATH="$(find build/DerivedData/Build/Products/Release-iphoneos -maxdepth 1 -type d -name '*.app' -print -quit)"
+          if [ -z "$APP_PATH" ]; then
+            echo "No .app bundle found"
+            exit 1
+          fi
+
+          rm -rf build/Payload
+          mkdir -p build/Payload
+          cp -R "$APP_PATH" build/Payload/
+
+          IPA="BCS-Chart-Studio-v${{ steps.meta.outputs.version }}-unsigned.ipa"
+          (cd build && /usr/bin/zip -qry "$IPA" Payload)
+          echo "ipa=build/$IPA" >> "$GITHUB_OUTPUT"
+          /usr/bin/unzip -l "build/$IPA" | head -40
+
+      - name: Upload IPA artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: BCS-Chart-Studio-v${{ steps.meta.outputs.version }}-unsigned-IPA
+          path: ${{ steps.package.outputs.ipa }}
+          if-no-files-found: error
+          retention-days: 30
